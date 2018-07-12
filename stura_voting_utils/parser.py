@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import re
-
 from utils import *
 
 
@@ -28,14 +27,14 @@ def parse_voters(reader):
         yield SimpleVoter(name, weight)
 
 
-_head_rx = re.compile(r'\s*#\s*(?P<title>.+)$')
-_group_rx = re.compile(r'\s*##\s*(?P<group>.+?)$')
-_voting_rx = re.compile(r'\s*###\s*(?P<voting>.+?)$')
+_head_rx = re.compile(r'\s*#\s+(?P<title>.+)$')
+_group_rx = re.compile(r'\s*##\s+(?P<group>.+?)$')
+_voting_rx = re.compile(r'\s*###\s+(?P<voting>.+?)$')
 _schulze_option_rx = re.compile(r'\s*[*]\s+(?P<option>.+?)$')
 _median_option_rx = re.compile(r'\s*[-]\s+(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<concurrency>[€$£])?$')
 
 
-def _parse_concurrency_value(match):
+def parse_concurrency_value(match):
     if not match:
         return None
     # maybe the try is not necessary because it should always be parsable as int, but just to be sure
@@ -75,7 +74,7 @@ def parse_voting_collection(reader):
     state = _head_state
     last_voting_name = None
     for line_num, line in enumerate(reader, 1):
-        line = line.sptrip()
+        line = line.strip()
         if not line:
             continue
         if state == _head_state:
@@ -94,9 +93,10 @@ def parse_voting_collection(reader):
         elif state == _group_or_voting_state:
             last_voting_name, state = _handle_group_or_voting_state(res, last_voting_name, line, line_num)
         elif state == _schulze_option_state:
-            state, last_voting_name = _handle_schulze_option_state(res, last_voting_name, line, line_num)
+            last_voting_name, state = _handle_schulze_option_state(res, last_voting_name, line, line_num)
         else:
-            raise ParseException('Internal error: Invalid state while parsing voting collection')
+            raise ParseException('Internal error: Invalid state while parsing voting collection: %s' % str(state))
+    return res
 
 
 def _handle_group_state(res, line, line_num):
@@ -141,7 +141,7 @@ def _handle_option_state(res, last_voting_name, line, line_num):
         state = _schulze_option_state
     elif id == 1:
         # we parsed the value of a median voting, transform to int
-        parse_res = _parse_concurrency_value(m)
+        parse_res = parse_concurrency_value(m)
         if not parse_res:
             # should never happen
             raise ParseException('Internal error: Unable to parse value for median voting in line %d' % line_num)
@@ -179,11 +179,15 @@ def _handle_schulze_option_state(res, last_voting_name, line, line_num):
         skel = last_group.schulze_votings[-1]
         skel.options.append(m.group('option'))
         # state does not change
-        state = last_voting_name, _schulze_option_state
+        state = _schulze_option_state
+        return last_voting_name, state
     else:
         # now it must be a group or a new voting
         try:
             return _handle_group_or_voting_state(res, last_voting_name, line, line_num)
         except ParseException as e:
             raise ParseException('Invalid syntax in line %d: Must be a Schulze option, group or new voting' % line_num)
-    return last_voting_name, state
+
+
+res = parse_voting_collection(open('../examples/stura-9.5.17.txt'))
+print(res.output())
