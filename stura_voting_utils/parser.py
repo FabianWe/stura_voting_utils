@@ -6,8 +6,8 @@ import sys
 import argparse
 
 from utils import *
-from schulze_voting import SchulzeVote
-from median_voting import MedianVote
+from schulze_voting import SchulzeVote, evaluate_schulze
+from median_voting import MedianVote, MedianStatistics
 
 
 class ParseException(Exception):
@@ -212,13 +212,13 @@ def _parse_csv_head(head_row):
         elif i == 0:
             try:
                 value = int(m.group('value'))
-                voting = MedianVotingSkeleton('Voting %d' % (col_num - 1), value, None, col_num)
+                voting = MedianVotingSkeleton('Voting %d' % (col_num + 1), value, None, col_num)
                 group.median_votings.append(voting)
             except ValueError as e:
                 raise ParseException('Invalid entry in column %d: %s, column must be of form "Median(<VALUE>)"' % (col_num, str(e)))
         elif i == 1:
             num = int(m.group('num'))
-            voting = SchulzeVotingSkeleton('Voting %d' % (col_num - 1), ['Option %d' % (i + 1) for i in range(num)], col_num)
+            voting = SchulzeVotingSkeleton('Voting %d' % (col_num + 1), ['Option %d' % (i + 1) for i in range(num)], col_num)
             group.schulze_votings.append(voting)
         else:
             assert False
@@ -227,7 +227,8 @@ def _parse_csv_head(head_row):
 
 def _parse_csv_body(collection, rows):
     # ugly but ok
-    all_votings = sorted(collection.groups[0].median_votings + collection.groups[0].schulze_votings)
+    all_votings = sorted(collection.groups[0].median_votings + collection.groups[0].schulze_votings,
+                         key=lambda v: v.id)
     num_votings = len(all_votings)
     # stores all votes
     votes = [[] for _ in all_votings]
@@ -241,6 +242,8 @@ def _parse_csv_body(collection, rows):
             raise ParseException("Can't parse weight as int: %s" % str(e))
         # everything okay, now we can parse all votings
         for i, (skel, entry) in enumerate(zip(all_votings, row[2:])):
+            if not entry:
+                continue
             if isinstance(skel, SchulzeVotingSkeleton):
                 try:
                     options = [int(as_str) for as_str in entry.split('/')]
@@ -260,10 +263,6 @@ def _parse_csv_body(collection, rows):
             else:
                 assert False
     return all_votings, votes
-
-
-def _print_eval(votings, votes):
-    pass
 
 
 def parse_csv(reader, delimiter=','):
@@ -302,3 +301,27 @@ if __name__ == '__main__':
             print('Error while parsing csv file:')
             print(e)
             sys.exit(1)
+
+    print('Evaluating votings...')
+    print()
+    for i, skel in enumerate(all_votings, 1):
+        print('Voting %d ' % i, end='')
+        if isinstance(skel, SchulzeVotingSkeleton):
+            print('Schulze voting with %d options' % len(skel.options))
+            print('The ranking groups are as follows:')
+            s_res = evaluate_schulze(votes[i-1], len(skel.options))
+            eq_list = [' = '.join(str(i) for i in l) for l in s_res.candidate_wins]
+            out = ' > '.join(eq_list)
+            print(out)
+        elif isinstance(skel, MedianVotingSkeleton):
+            print('Median voting with value %d' % skel.value)
+            stat = MedianStatistics(votes[i-1])
+            agreed_value = stat.median()
+            if agreed_value is None:
+                print('No value agreed upon')
+            else:
+                print('Agreed on value', agreed_value)
+        else:
+            assert False
+        print()
+    print('Note that the capabilities of this tool are very limited, it is rather a demonstration of the voting packages')
