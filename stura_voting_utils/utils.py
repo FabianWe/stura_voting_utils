@@ -15,7 +15,7 @@ def output_concurrency(val, concurrency=None, delim=','):
         return '%d%s%d%s' % (euro, delim, cent, concurrency)
 
 
-class SimpleVoter(object):
+class WeightedVoter(object):
     def __init__(self, name, weight):
         self.name = name
         self.weight = weight
@@ -26,6 +26,7 @@ class SimpleVoter(object):
 
 class VotingCollection(object):
     def __init__(self, name, date, groups):
+
         self.name = name
         self.date = date
         self.groups = groups
@@ -53,19 +54,21 @@ class VotingGroup(object):
 
 
 class MedianVotingSkeleton(object):
-    def __init__(self, name, value, concurrency):
+    def __init__(self, name, value, concurrency, id=None):
         self.name = name
         self.value = value
         self.concurrency = concurrency
+        self.id = id
 
     def output(self):
         return '### %s\n- %s' % (self.name, output_concurrency(self.value, self.concurrency))
 
 
 class SchulzeVotingSkeleton(object):
-    def __init__(self, name, options):
+    def __init__(self, name, options, id=None):
         self.name = name
         self.options = options
+        self.id = id
 
     def output(self):
         return '### %s\n%s' % (self.name, '\n'.join( '* %s' % option for option in self.options ))

@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import re
+import csv
+import sys
+import argparse
+
 from utils import *
+from schulze_voting import SchulzeVote
+from median_voting import MedianVote
 
 
 class ParseException(Exception):
@@ -24,7 +30,7 @@ def parse_voters(reader):
             weight = int(weight)
         except ValueError as e:
             raise ParseException('Invalid enry in line %d: %s, line must be of form "voter: weight"' % (line_num, str(e)))
-        yield SimpleVoter(name, weight)
+        yield WeightedVoter(name, weight)
 
 
 _head_rx = re.compile(r'\s*#\s+(?P<title>.+)$')
@@ -189,5 +195,110 @@ def _handle_schulze_option_state(res, last_voting_name, line, line_num):
             raise ParseException('Invalid syntax in line %d: Must be a Schulze option, group or new voting' % line_num)
 
 
-res = parse_voting_collection(open('../examples/stura-9.5.17.txt'))
-print(res.output())
+_csv_median_head_rx = re.compile(r'[Mm]edian\s*\((?P<value>\d+)\)\s*$')
+_csv_schulze_head_rx = re.compile(r'[Ss]chulze\s*\((?P<num>\d+)\)')
+
+
+def _parse_csv_head(head_row):
+    if len(head_row) < 2:
+        raise ParseException('csv head must contain at least two columns')
+    group = VotingGroup('Votings', [], [])
+    res = VotingCollection('', None, [group,])
+    for col_num, col in enumerate(head_row[2:]):
+        col = col.strip()
+        i, m = _match_first(col, _csv_median_head_rx, _csv_schulze_head_rx)
+        if i < 0:
+            raise ParseException('Invalid column %d: Expected Schulze or Median definition' % col_num)
+        elif i == 0:
+            try:
+                value = int(m.group('value'))
+                voting = MedianVotingSkeleton('Voting %d' % (col_num - 1), value, None, col_num)
+                group.median_votings.append(voting)
+            except ValueError as e:
+                raise ParseException('Invalid entry in column %d: %s, column must be of form "Median(<VALUE>)"' % (col_num, str(e)))
+        elif i == 1:
+            num = int(m.group('num'))
+            voting = SchulzeVotingSkeleton('Voting %d' % (col_num - 1), ['Option %d' % (i + 1) for i in range(num)], col_num)
+            group.schulze_votings.append(voting)
+        else:
+            assert False
+    return res
+
+
+def _parse_csv_body(collection, rows):
+    # ugly but ok
+    all_votings = sorted(collection.groups[0].median_votings + collection.groups[0].schulze_votings)
+    num_votings = len(all_votings)
+    # stores all votes
+    votes = [[] for _ in all_votings]
+    for row_num, row in enumerate(rows, 2):
+        if num_votings != (len(row) - 2):
+            raise ParseException('Invalid syntax in row %d: Not enough votings' % row)
+        # parse weight, we ignore the name
+        try:
+            weight = int(row[1])
+        except ValueError as e:
+            raise ParseException("Can't parse weight as int: %s" % str(e))
+        # everything okay, now we can parse all votings
+        for i, (skel, entry) in enumerate(zip(all_votings, row[2:])):
+            if isinstance(skel, SchulzeVotingSkeleton):
+                try:
+                    options = [int(as_str) for as_str in entry.split('/')]
+                    if len(options) != len(skel.options):
+                        raise ParseException('Invalid options in row %d: Must contain exactly as many options as defined in voting' % row_num)
+                    v = SchulzeVote(options, weight)
+                    votes[i].append(v)
+                except ValueError as option_err:
+                    raise ParseException("Can't parse options for Schulze voting: %s" % str(option_err))
+            elif isinstance(skel, MedianVotingSkeleton):
+                try:
+                    value = int(entry)
+                except ValueError as median_err:
+                    raise ParseException('Invalid value for median voting: %s' % str(median_err))
+                v = MedianVote(value, weight)
+                votes[i].append(v)
+            else:
+                assert False
+    return all_votings, votes
+
+
+def _print_eval(votings, votes):
+    pass
+
+
+def parse_csv(reader, delimiter=','):
+    csv_reader = csv.reader(reader, delimiter=delimiter)
+    try:
+        head = next(csv_reader)
+    except StopIteration:
+        raise ParseException('No header found in csv file')
+    votings = _parse_csv_head(head)
+    return _parse_csv_body(votings, csv_reader)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Command line tool for evaluating Schulze and Median votings',
+        formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument(
+        '--file',
+        '-f',
+        help='Path to the csv file',
+        required=True)
+
+    parser.add_argument(
+        '--delimiter',
+        help='The csv file delimiter, default is ","',
+        required=False,
+        default=',')
+
+    args = parser.parse_args()
+
+    with open(args.file, 'r') as f:
+        try:
+            all_votings, votes = parse_csv(f, args.delimiter)
+        except ParseException as e:
+            print('Error while parsing csv file:')
+            print(e)
+            sys.exit(1)
