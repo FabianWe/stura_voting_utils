@@ -33,10 +33,31 @@ from median_voting import MedianVote
 class ParseException(Exception):
     pass
 
+# Regular expression to parse lines from a voters file.
 _voter_rx = re.compile(r'\s*[*]\s+(?P<name>.+?):\s*(?P<weight>\d+)$')
 
 
 def parse_voters(reader):
+    """Parse a voters file.
+
+    Such a file must contain one voter entry in each line. Each line must be of the form
+
+    * <VOTER-NAME>: <WEIGHT>
+
+    It does not return a list of the voters but an iterator over WeightedVoter objects
+    (groups name and weight together).
+
+    Args:
+        reader (iterable of string): Anything to iterate over and receive lines (file opened with open, list of strings)
+
+
+    Yields:
+        WeightedVoter: All parsed voters.
+
+
+    Raises:
+        ParseException: If there is a syntax error.
+    """
     for line_num, line in enumerate(reader, 1):
         line = line.strip()
         if not line or line.startswith('#'):
@@ -53,14 +74,22 @@ def parse_voters(reader):
         yield WeightedVoter(name, weight)
 
 
+# The following section contains regular expressions used to parse a description file.
 _head_rx = re.compile(r'\s*#\s+(?P<title>.+)$')
 _group_rx = re.compile(r'\s*##\s+(?P<group>.+?)$')
 _voting_rx = re.compile(r'\s*###\s+(?P<voting>.+?)$')
 _schulze_option_rx = re.compile(r'\s*[*]\s+(?P<option>.+?)$')
 _median_option_rx = re.compile(r'\s*[-]\s+(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<concurrency>[€$£])?$')
+# not nice, mostly just a copy of the regex before
+_concurrency_rx = re.compile(r'(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<concurrency>[€$£])?$')
 
 
-def parse_concurrency_value(match):
+def concurrency_match(match):
+    """Parses a number with a concurrency.
+
+    Args:
+        match (regex match): A match
+    """
     if not match:
         return None
     # maybe the try is not necessary because it should always be parsable as int, but just to be sure
@@ -77,6 +106,11 @@ def parse_concurrency_value(match):
         return value, match.group('concurrency')
     except ValueError as e:
         return None
+
+
+def parse_concurrency(s):
+    # TODO TEST
+    return concurrency_match(_concurrency_rx.match(s))
 
 
 _head_state = 'start'
@@ -167,7 +201,7 @@ def _handle_option_state(res, last_voting_name, line, line_num):
         state = _schulze_option_state
     elif id == 1:
         # we parsed the value of a median voting, transform to int
-        parse_res = parse_concurrency_value(m)
+        parse_res = concurrency_match(m)
         if not parse_res:
             # should never happen
             raise ParseException('Internal error: Unable to parse value for median voting in line %d' % line_num)
@@ -293,5 +327,3 @@ def parse_csv(reader, delimiter=','):
         raise ParseException('No header found in csv file')
     votings = _parse_csv_head(head)
     return _parse_csv_body(votings, csv_reader)
-
-
