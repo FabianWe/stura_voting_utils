@@ -25,7 +25,7 @@
 import sys
 import argparse
 
-from parser import *
+from .parser import *
 
 from schulze_voting import evaluate_schulze
 from median_voting import MedianStatistics

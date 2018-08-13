@@ -25,7 +25,7 @@
 import re
 import csv
 
-from utils import *
+from .utils import *
 from schulze_voting import SchulzeVote
 from median_voting import MedianVote
 
