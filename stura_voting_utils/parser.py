@@ -119,12 +119,19 @@ def parse_concurrency(s):
         (int, str): The value (in cent) and the concurrency. Concurrency may be None if not provided in the string.
 
     Examples:
-        >>>
+        >>> parse_concurrency('100')
+        (10000, None)
+
+        >>> parse_concurrency('42.84 €')
+        (4284, '€')
+
+        >>> parse_concurrency('1337,1 $')
+        (133710, '$')
     """
-    # TODO TEST
     return concurrency_match(_concurrency_rx.match(s))
 
 
+# states for the collection parser
 _head_state = 'start'
 _group_state = 'group'
 _voting_state = 'voting'
@@ -133,6 +140,8 @@ _group_or_voting_state = 'group-or-voting'
 _schulze_option_state = 'schulze-option'
 
 
+# tries to match the string s against a list of regexes, returns first index and the match object. Returns -1 and None
+# on failure.
 def _match_first(s, *args):
     for i, rx in enumerate(args):
         m = rx.match(s)
@@ -142,6 +151,19 @@ def _match_first(s, *args):
 
 
 def parse_voting_collection(reader):
+    """Parse a voting collection from a list of strings (or a file).
+
+    For syntax information see the wiki.
+
+    Args:
+        reader: File like object to read from (a list will also do); something to iterate over and receive lines.
+
+    Returns:
+        VotingCollection: The parsed collection.
+
+    Raises:
+        ParseException: If there is a syntax / parse error.
+    """
     res = VotingCollection('', None, [])
     state = _head_state
     last_voting_name = None
@@ -171,6 +193,7 @@ def parse_voting_collection(reader):
     return res
 
 
+# The following block contains state parse methods
 def _handle_group_state(res, line, line_num):
     # parse a new group name
     m = _group_rx.match(line)
