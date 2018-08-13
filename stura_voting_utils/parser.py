@@ -31,6 +31,7 @@ from median_voting import MedianVote
 
 
 class ParseException(Exception):
+    """Exception thrown by all parse methods."""
     pass
 
 # Regular expression to parse lines from a voters file.
@@ -109,6 +110,17 @@ def concurrency_match(match):
 
 
 def parse_concurrency(s):
+    """Parse a concurrency value from a string.
+
+    Args:
+        s (str): String in the concurrency format.
+
+    Returns:
+        (int, str): The value (in cent) and the concurrency. Concurrency may be None if not provided in the string.
+
+    Examples:
+        >>>
+    """
     # TODO TEST
     return concurrency_match(_concurrency_rx.match(s))
 
