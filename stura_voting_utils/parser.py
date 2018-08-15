@@ -80,13 +80,13 @@ _head_rx = re.compile(r'\s*#\s+(?P<title>.+)$')
 _group_rx = re.compile(r'\s*##\s+(?P<group>.+?)$')
 _voting_rx = re.compile(r'\s*###\s+(?P<voting>.+?)$')
 _schulze_option_rx = re.compile(r'\s*[*]\s+(?P<option>.+?)$')
-_median_option_rx = re.compile(r'\s*[-]\s+(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<concurrency>[€$£])?$')
+_median_option_rx = re.compile(r'\s*[-]\s+(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<currency>[€$£])?$')
 # not nice, mostly just a copy of the regex before
-_concurrency_rx = re.compile(r'(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<concurrency>[€$£])?$')
+_currency_rx = re.compile(r'(?P<euro>\d+)(?:[.,](?P<cent>\d{1,2}))?\s*(?P<currency>[€$£])?$')
 
 
-def concurrency_match(match):
-    """Parses a number with a concurrency.
+def currency_match(match):
+    """Parses a number with a currency.
 
     Args:
         match (regex match): A match
@@ -104,31 +104,31 @@ def concurrency_match(match):
                 value += int(cent)
             else:
                 assert False
-        return value, match.group('concurrency')
+        return value, match.group('currency')
     except ValueError as e:
         return None
 
 
-def parse_concurrency(s):
-    """Parse a concurrency value from a string.
+def parse_currency(s):
+    """Parse a currency value from a string.
 
     Args:
-        s (str): String in the concurrency format.
+        s (str): String in the currency format.
 
     Returns:
-        (int, str): The value (in cent) and the concurrency. Concurrency may be None if not provided in the string.
+        (int, str): The value (in cent) and the currency. currency may be None if not provided in the string.
 
     Examples:
-        >>> parse_concurrency('100')
+        >>> parse_currency('100')
         (10000, None)
 
-        >>> parse_concurrency('42.84 €')
+        >>> parse_currency('42.84 €')
         (4284, '€')
 
-        >>> parse_concurrency('1337,1 $')
+        >>> parse_currency('1337,1 $')
         (133710, '$')
     """
-    return concurrency_match(_concurrency_rx.match(s))
+    return currency_match(_currency_rx.match(s))
 
 
 # states for the collection parser
@@ -236,12 +236,12 @@ def _handle_option_state(res, last_voting_name, line, line_num):
         state = _schulze_option_state
     elif id == 1:
         # we parsed the value of a median voting, transform to int
-        parse_res = concurrency_match(m)
+        parse_res = currency_match(m)
         if not parse_res:
             # should never happen
             raise ParseException('Internal error: Unable to parse value for median voting in line %d' % line_num)
-        val, concurrency = parse_res
-        median_skel = MedianVotingSkeleton(last_voting_name, val, concurrency, id=len(last_group))
+        val, currency = parse_res
+        median_skel = MedianVotingSkeleton(last_voting_name, val, currency, id=len(last_group))
         last_group.median_votings.append(median_skel)
         # now we must parse a group or a voting
         state = _group_or_voting_state

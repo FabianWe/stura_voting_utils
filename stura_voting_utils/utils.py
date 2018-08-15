@@ -23,14 +23,14 @@
 # SOFTWARE.
 
 
-def output_concurrency(val, concurrency=None, delim=','):
-    """Format a value in cents in a concurrency.
+def output_currency(val, currency=None, delim=','):
+    """Format a value in cents in a currency.
 
     The value is always formatted s.t. it contains exactly two decimal places.
 
     Args:
         val (int): The value to format.
-        concurrency: The concurrency as a string, for example '€' or None if no concurrency should be used.
+        currency: The currency as a string, for example '€' or None if no currency should be used.
         delim: The delimiter to separate the number before the decimal point (default is ',', the German default)
 
     Returns:
@@ -38,35 +38,35 @@ def output_concurrency(val, concurrency=None, delim=','):
         10.00€.
 
     Examples:
-        >>> output_concurrency(9)
+        >>> output_currency(9)
         '0,09'
 
-        >>> output_concurrency(42, concurrency='$', delim='.')
+        >>> output_currency(42, currency='$', delim='.')
         '0.42 $'
 
-        >>> output_concurrency(100, '€')
+        >>> output_currency(100, '€')
         '1,00 €'
 
-        >>> output_concurrency(4284)
+        >>> output_currency(4284)
         '42,84'
     """
-    if concurrency is None:
-        concurrency = ''
+    if currency is None:
+        currency = ''
     else:
-        concurrency = ' ' + concurrency
+        currency = ' ' + currency
     if val < 0:
-        return '-' + output_concurrency(-val, concurrency, delim)
+        return '-' + output_currency(-val, currency, delim)
     elif val < 10:
-        return '0%s0%d%s' % (delim, val, concurrency)
+        return '0%s0%d%s' % (delim, val, currency)
     elif val < 100:
-        return '0%s%d%s' % (delim, val, concurrency)
+        return '0%s%d%s' % (delim, val, currency)
     else:
         euro = val // 100
         cent = val % 100
         if cent < 10:
-            return '%d%s0%d%s' % (euro, delim, cent, concurrency)
+            return '%d%s0%d%s' % (euro, delim, cent, currency)
         else:
-            return '%d%s%d%s' % (euro, delim, cent, concurrency)
+            return '%d%s%d%s' % (euro, delim, cent, currency)
 
 
 class WeightedVoter(object):
@@ -162,20 +162,20 @@ class MedianVotingSkeleton(object):
     """A median voting skeleton (contains no votes, just defines the basic structure).
 
     A median skeleton defines the basic components of the voting. It contains the name of the voting, the value
-    voted for (in cents, so 100.00€ should be stored as 10000) and the concurrency used (can be None). It also has an
+    voted for (in cents, so 100.00€ should be stored as 10000) and the currency used (can be None). It also has an
     id field that is used for sorting in the voting groups (when median and Schulze votings are combined).
 
     Attributes:
         name (str): Name of the voting.
         value (int): The max value of the voting.
-        concurrency (str): The concurrency used in the voting.
+        currency (str): The currency used in the voting.
         id (int): An internal id that is used for sorting skeletons.
 
     """
-    def __init__(self, name, value, concurrency, id=None):
+    def __init__(self, name, value, currency, id=None):
         self.name = name
         self.value = value
-        self.concurrency = concurrency
+        self.currency = currency
         self.id = id
 
     def output(self):
@@ -184,7 +184,7 @@ class MedianVotingSkeleton(object):
         Returns:
             str: The representation of the voting in the Markdown-like format.
         """
-        return '### %s\n- %s' % (self.name, output_concurrency(self.value, self.concurrency))
+        return '### %s\n- %s' % (self.name, output_currency(self.value, self.currency))
 
 
 class SchulzeVotingSkeleton(object):
