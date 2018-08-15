@@ -230,7 +230,7 @@ def _handle_option_state(res, last_voting_name, line, line_num):
         # we parsed a schulze option
         # create a new schulze voting (this is the first time we parsed an option)
         option = m.group('option')
-        schulze_skel = SchulzeVotingSkeleton(last_voting_name, [option, ])
+        schulze_skel = SchulzeVotingSkeleton(last_voting_name, [option, ], id=len(last_group))
         last_group.schulze_votings.append(schulze_skel)
         # now parse more schulze options or new group / voting
         state = _schulze_option_state
@@ -241,7 +241,7 @@ def _handle_option_state(res, last_voting_name, line, line_num):
             # should never happen
             raise ParseException('Internal error: Unable to parse value for median voting in line %d' % line_num)
         val, concurrency = parse_res
-        median_skel = MedianVotingSkeleton(last_voting_name, val, concurrency)
+        median_skel = MedianVotingSkeleton(last_voting_name, val, concurrency, id=len(last_group))
         last_group.median_votings.append(median_skel)
         # now we must parse a group or a voting
         state = _group_or_voting_state
@@ -285,7 +285,7 @@ def _handle_schulze_option_state(res, last_voting_name, line, line_num):
 
 
 _csv_median_head_rx = re.compile(r'[Mm]edian\s*\((?P<value>\d+)\)\s*$')
-_csv_schulze_head_rx = re.compile(r'[Ss]chulze\s*\((?P<num>\d+)\)')
+_csv_schulze_head_rx = re.compile(r'[Ss]chulze\s*\((?P<num>\d+)\)\s*$')
 
 
 def _parse_csv_head(head_row):

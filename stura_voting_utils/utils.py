@@ -136,7 +136,15 @@ class VotingGroup(object):
             list of MedianVotingSkeleton and SchulzeVotingSkeleton: All votings sorted according to their id.
         """
         return sorted(self.median_votings + self.schulze_votings,
-                      key=lambda v: v.id)
+                      key=lambda v: v.id if v.id is not None else 0)
+
+    def __len__(self):
+        """Return the number of votings in the group.
+
+        Returns: Number of votings in the group (median and Schulze).
+
+        """
+        return len(self.median_votings) + len(self.schulze_votings)
 
     def output(self):
         """Return the group in the Markdown-like format.
