@@ -34,6 +34,7 @@ class ParseException(Exception):
     """Exception thrown by all parse methods."""
     pass
 
+
 # Regular expression to parse lines from a voters file.
 _voter_rx = re.compile(r'\s*[*]\s+(?P<name>.+?):\s*(?P<weight>\d+)$')
 
@@ -71,7 +72,8 @@ def parse_voters(reader):
         try:
             weight = int(weight)
         except ValueError as e:
-            raise ParseException('Invalid enry in line %d: %s, line must be of form "voter: weight"' % (line_num, str(e)))
+            raise ParseException(
+                'Invalid enry in line %d: %s, line must be of form "voter: weight"' % (line_num, str(e)))
         yield WeightedVoter(name, weight)
 
 
@@ -292,7 +294,7 @@ def _parse_csv_head(head_row):
     if len(head_row) < 2:
         raise ParseException('csv head must contain at least two columns')
     group = VotingGroup('Votings', [], [])
-    res = VotingCollection('', None, [group,])
+    res = VotingCollection('', None, [group, ])
     for col_num, col in enumerate(head_row[2:]):
         col = col.strip()
         i, m = _match_first(col, _csv_median_head_rx, _csv_schulze_head_rx)
@@ -304,10 +306,12 @@ def _parse_csv_head(head_row):
                 voting = MedianVotingSkeleton('Voting %d' % (col_num + 1), value, None, col_num)
                 group.median_votings.append(voting)
             except ValueError as e:
-                raise ParseException('Invalid entry in column %d: %s, column must be of form "Median(<VALUE>)"' % (col_num, str(e)))
+                raise ParseException(
+                    'Invalid entry in column %d: %s, column must be of form "Median(<VALUE>)"' % (col_num, str(e)))
         elif i == 1:
             num = int(m.group('num'))
-            voting = SchulzeVotingSkeleton('Voting %d' % (col_num + 1), ['Option %d' % (i + 1) for i in range(num)], col_num)
+            voting = SchulzeVotingSkeleton('Voting %d' % (col_num + 1), ['Option %d' % (i + 1) for i in range(num)],
+                                           col_num)
             group.schulze_votings.append(voting)
         else:
             assert False
@@ -337,7 +341,8 @@ def _parse_csv_body(collection, rows):
                 try:
                     options = [int(as_str) for as_str in entry.split('/')]
                     if len(options) != len(skel.options):
-                        raise ParseException('Invalid options in row %d: Must contain exactly as many options as defined in voting' % row_num)
+                        raise ParseException(
+                            'Invalid options in row %d: Must contain exactly as many options as defined in voting' % row_num)
                     v = SchulzeVote(options, weight)
                     votes[i].append(v)
                 except ValueError as option_err:

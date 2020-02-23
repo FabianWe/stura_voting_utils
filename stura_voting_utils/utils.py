@@ -98,8 +98,8 @@ class VotingCollection(object):
         date (datetime.datetime): The date when the voting takes place, can be None.
         groups (list of VotingGroup): All groups of the collection.
     """
-    def __init__(self, name, date, groups):
 
+    def __init__(self, name, date, groups):
         self.name = name
         self.date = date
         self.groups = groups
@@ -112,7 +112,7 @@ class VotingCollection(object):
         Returns:
             str: The representation of the collection in the Markdown-like format.
         """
-        groups_str = '\n\n'.join( group.output() for group in self.groups )
+        groups_str = '\n\n'.join(group.output() for group in self.groups)
         return '# %s\n\n%s' % (self.name, groups_str)
 
 
@@ -124,6 +124,7 @@ class VotingGroup(object):
         median_votings (list of MedianVotingSkeleton): All median votings in the group.
         schulze_votings (list of SchulzeVotingSkeleton) Alle Schulze votings in the group.
     """
+
     def __init__(self, name, median_votings, schulze_votings):
         self.name = name
         self.median_votings = median_votings
@@ -157,7 +158,6 @@ class VotingGroup(object):
                                 '\n\n'.join(voting.output() for voting in all_votings))
 
 
-
 class MedianVotingSkeleton(object):
     """A median voting skeleton (contains no votes, just defines the basic structure).
 
@@ -172,6 +172,7 @@ class MedianVotingSkeleton(object):
         id (int): An internal id that is used for sorting skeletons.
 
     """
+
     def __init__(self, name, value, currency, id=None):
         self.name = name
         self.value = value
@@ -198,6 +199,7 @@ class SchulzeVotingSkeleton(object):
         options (list of str): All possible options of the voting.
         id (int): An internal id that is used for sorting skeletons.
     """
+
     def __init__(self, name, options, id=None):
         self.name = name
         self.options = options
@@ -209,4 +211,4 @@ class SchulzeVotingSkeleton(object):
         Returns:
             str: The representation of the voting in the Markdown-like format.
         """
-        return '### %s\n%s' % (self.name, '\n'.join( '* %s' % option for option in self.options ))
+        return '### %s\n%s' % (self.name, '\n'.join('* %s' % option for option in self.options))

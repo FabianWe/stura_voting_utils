@@ -64,13 +64,13 @@ if __name__ == '__main__':
         if isinstance(skel, SchulzeVotingSkeleton):
             print('Schulze voting with %d options' % len(skel.options))
             print('The ranking groups are as follows:')
-            s_res = evaluate_schulze(votes[i-1], len(skel.options))
+            s_res = evaluate_schulze(votes[i - 1], len(skel.options))
             eq_list = [' = '.join(str(i) for i in l) for l in s_res.candidate_wins]
             out = ' > '.join(eq_list)
             print(out)
         elif isinstance(skel, MedianVotingSkeleton):
             print('Median voting with value %d' % skel.value)
-            stat = MedianStatistics(votes[i-1])
+            stat = MedianStatistics(votes[i - 1])
             agreed_value = stat.median()
             if agreed_value is None:
                 print('No value agreed upon')
@@ -79,4 +79,5 @@ if __name__ == '__main__':
         else:
             assert False
         print()
-    print('Note that the capabilities of this tool are very limited, it is rather a demonstration of the voting packages')
+    print(
+        'Note that the capabilities of this tool are very limited, it is rather a demonstration of the voting packages')
